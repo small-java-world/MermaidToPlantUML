@@ -1,0 +1,175 @@
+# Mermaid ドメインモデル図 → PlantUML → 画像変換ツール 仕様書
+
+## 1. ツール概要
+
+### 目的
+Mermaid記法で作成された「ドメインモデル図」(いわゆるクラス図相当)を、PlantUML形式に変換し、最終的にPNG/SVG/PDFなどの画像として出力すること。
+
+### 運用想定
+- 社内のエンジニアが作成・管理しているMermaid形式のドメインモデル図を、ドキュメントやプレゼンに貼りやすい画像ファイルに自動生成する。
+- ローカル環境で完結することを想定し、サーバを立てずにCLIとして実行する。
+
+## 2. 前提・要件
+
+### 言語・環境
+- Go言語（バージョン 1.XX 以上）で実装。
+- OS は主にWindows 10 以降、macOS 10.15 以降、Linux (x86_64) を想定。
+- PlantUML のコマンドラインツールが利用可能な環境であること（Java, Docker等は事前実装されている想定）。
+
+### 入力 (Input)
+- ドメインモデル図を表すMermaidファイル（拡張子 .mmd）。
+- Mermaidコード内では基本的に `classDiagram` 相当の構文を使う想定。
+
+例:
+```mermaid
+classDiagram
+  class Order {
+    +String orderId
+    +Date orderDate
+    +void placeOrder()
+  }
+  class Customer {
+    +String customerName
+    +void register()
+  }
+  Order *-- Customer
+```
+
+### 出力 (Output)
+- 変換後のPlantUMLファイル（拡張子 .puml）
+- 画像ファイル（PNG/SVG/PDFなど。初期実装ではPNGを出力し、展望的にSVGやPDFを追加）
+- 出力先ファイル名は、入力ファイル名をベースに拡張子を置き換える（例：`diagram.mmd → diagram.puml → diagram.png`）
+
+### ユースケース
+- CLIを使って `./mmd2img some_diagram.mmd` のように実行すると、同ディレクトリに `some_diagram.puml` および `some_diagram.png` が生成される。
+- ツール利用者は、最終的な `.png` をドキュメント/スライドに貼り付ける。
+
+### 範囲 (Scope)
+- **変換対象**: Mermaidの `classDiagram` 文法のうち、基本的なクラス宣言・関連(継承、関連、コンポジション等)・属性・メソッド。
+- **未対応**: `erDiagram` 、 `sequenceDiagram` 、 `gantt` 、 `pie` など他のMermaid文法は除外（必要に応じて拡張予定）。
+
+## 3. 操作仕様（CLIコマンド設計）
+
+### コマンド名称: `mmd2img` （仮）
+
+#### 使用例:
+```bash
+# PNG出力
+mmd2img domain_model.mmd
+
+# SVG出力にしたい場合（展望的）
+mmd2img -format svg domain_model.mmd
+
+# 出力先を指定する場合
+mmd2img -o ./out/domain_model.png domain_model.mmd
+```
+
+#### オプション例:
+- `-format <png|svg|pdf>`: 出力フォーマット（デフォルト: png）
+- `-o <filepath>`: 出力先ファイル名を指定（省略時は `<入力ベース名>.<拡張子>`）
+
+## 4. 入出力ファイルの命名規則
+
+- 入力: `<name>.mmd`
+- PlantUMLファイル: `<name>.puml`
+- 画像: `<name>.png` (または .svg, .pdf 等)
+- 競合防止のため、すでに同名ファイルがある場合は上書き確認 or バージョン違いのファイルとして書き出す。
+
+## 5. エラー・例外処理
+
+### Mermaidファイルの文法が想定外の場合
+- 変換時に失敗した範囲・行番号を表示する（例：“Unsupported line: …”など）。
+
+### PlantUMLコマンドが見つからない / 実行に失敗した
+- “PlantUMLが利用できません。Java / Docker が実装されているか確認してください” というエラーメッセージを表示。
+
+### 出力ファイルへの書き込みに失敗
+- 例外をキャッチし、エラー内容を標準エラー出力に表示する。
+
+## 6. 実行例（サンプルフロー）
+
+あるディレクトリに `domain.mmd` があるとする。
+
+### コマンド実行:
+```bash
+mmd2img domain.mmd
+```
+
+### 変換プロセス:
+1. Goプログラム内で `domain.mmd` を読み込む
+2. Mermaid → PlantUML 変換し、`domain.puml` を生成
+3. `plantuml domain.puml` を呼び出し、`domain.png` を出力
+
+### 完了メッセージ表示:
+```diff
+Successfully generated:
+- domain.puml
+- domain.png
+```
+
+### 生成された `domain.png` を開くと、ドメインモデル図（クラス図）が可視化されている。
+
+
+### 7. 実装方針・プログラム構成
+
+#### main.go
+- エントリポイント
+  - CLI引数解析
+  - ファイルの入出力
+  - PlantUMLコマンド呼び出し
+
+#### mermaid_parser.go (または mermaid_to_plantuml.go)
+- Mermaidのクラス図文法を解析し、PlantUML文字列を構築
+  - 正規表現やASTを使用
+
+#### exec_plantuml.go
+- PlantUMLコマンド実行
+- エラーハンドリング
+- フォーマット指定(png/svg/pdf)に応じたオプション付与
+
+### 8. テスト方針
+
+#### 単体テスト
+- `mermaid_parser_test.go`
+  - Mermaidのソースを与え、想定するPlantUML文字列が返るかを検証
+
+#### 結合テスト
+- 実際に`.mmd`ファイルを置き、`mmd2img`コマンドを叩いて`.puml` / `.png`が生成されるか確認
+
+#### サンプルケース
+1. シンプルなクラス一つ
+2. 複数クラス（`*--`, `<|--`などの関連を含む）
+3. 属性・メソッドが多いクラス
+4. 不正なMermaid文法
+
+### 9. 運用・展開
+
+#### バイナリ配布
+- Windows / macOS / Linux 向けにGoのクロスコンパイルでビルド
+- 社内共有
+
+#### バージョン管理
+- Gitリポジトリ上でソースコードを管理
+
+#### 展望
+1. `erDiagram`, `sequenceDiagram` などのサポート
+2. CLIの引数でレイアウトやテーマ(PlantUMLのSkinParam)を指定
+3. Dockerコンテナ化して、CIパイプラインなどでも図生成を自動化
+
+### 付録: 期待されるディレクトリ構成サンプル
+```
+my_mmd2img_tool/
+├── go.mod
+├── main.go                 # CLI入口
+├── mermaid_parser.go       # Mermaid→PlantUML変換ロジック
+├── exec_plantuml.go        # PlantUML実行関連
+├── internal/
+│   └── tests/
+│       ├── mermaid_parser_test.go
+│       └── ... (その他テスト)
+└── README.md
+```
+
+### まとめ
+上記の仕様書プロンプトをもとに開発を進めれば、Mermaid(ドメインモデル図)→PlantUML→画像という一連の変換フローをGo言語で実現するツールを作成できます。会社ドキュメントでも扱いやすい画像出力が得られるため、チーム開発のUMLモデリングや設計書作成に活用しやすくなります。
+
