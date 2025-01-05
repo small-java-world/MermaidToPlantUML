@@ -8,18 +8,102 @@ MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換�
 - PlantUMLを使用して画像（PNG/SVG/PDF）を生成
 - CLIツールとして簡単に利用可能
 
-## 前提条件
+## インストール手順
 
-- Go 1.16以上
-- PlantUML（以下のいずれかの方法でインストール）
-  - Java + PlantUMLのjarファイル
-  - Docker環境 + PlantUMLコンテナ
+### 1. 前提条件
 
-## インストール
+#### Go環境のセットアップ
+1. [Go公式サイト](https://golang.org/dl/)から、Go 1.16以上をダウンロード
+2. インストーラーを実行し、指示に従ってインストール
+3. インストールの確認:
+```bash
+go version
+```
+
+#### PlantUMLのセットアップ（Windows環境）
+
+1. [Java](https://www.oracle.com/java/technologies/downloads/)をインストール（JRE 8以上）
+2. このリポジトリをクローンまたはダウンロード
+3. [PlantUML公式サイト](https://plantuml.com/download)から`plantuml.jar`をダウンロードし、`lib`ディレクトリに配置
+4. PowerShellを管理者権限で開き、以下のコマンドを実行：
+   ```powershell
+   .\setup_windows.ps1
+   ```
+5. 新しいPowerShellウィンドウを開くか、以下のコマンドを実行してエイリアスを有効化：
+   ```powershell
+   . $PROFILE
+   ```
+6. セットアップの確認：
+   ```powershell
+   plantuml -version
+   ```
+
+#### PlantUMLのセットアップ（Mac/Linux環境）
+
+1. [Java](https://www.oracle.com/java/technologies/downloads/)をインストール（JRE 8以上）
+2. このリポジトリをクローンまたはダウンロード
+3. [PlantUML公式サイト](https://plantuml.com/download)から`plantuml.jar`をダウンロードし、`lib`ディレクトリに配置
+4. シェルスクリプトに実行権限を付与：
+   ```bash
+   chmod +x plantuml.sh
+   ```
+5. エイリアスを設定（bashの場合）：
+   ```bash
+   echo 'alias plantuml="$(pwd)/plantuml.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+   または（zshの場合）：
+   ```bash
+   echo 'alias plantuml="$(pwd)/plantuml.sh"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+6. セットアップの確認：
+   ```bash
+   plantuml -version
+   ```
+
+### 2. Mermaid to PlantUML Converterのインストール
 
 ```bash
 go install github.com/yourusername/mermaid2plantuml@latest
 ```
+
+### 3. インストールの確認
+
+```bash
+# バージョン確認
+mmd2img --version
+
+# テスト用の簡単な変換
+echo 'classDiagram
+    class Test {
+        +String name
+    }' > test.mmd
+mmd2img test.mmd
+```
+
+### トラブルシューティング
+
+#### よくある問題と解決方法
+
+1. `mmd2img: command not found`
+   - `$GOPATH/bin`が環境変数PATHに含まれているか確認
+   - `go env GOPATH`で$GOPATHを確認
+
+2. `PlantUMLが利用できません`
+   - `plantuml -version`でPlantUMLコマンドが利用可能か確認
+   - Javaがインストールされているか確認（`java -version`）
+   - PlantUMLのパスが正しく設定されているか確認
+
+3. `permission denied`
+   - 実行権限の付与が必要:
+     ```bash
+     chmod +x $(which mmd2img)
+     ```
+
+4. Dockerでの実行時のエラー
+   - Dockerデーモンが起動しているか確認
+   - ボリュームマウントの権限を確認
 
 ## 使用方法
 

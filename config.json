@@ -1,0 +1,10 @@
+{
+    "plantuml": {
+        "command": "lib/plantuml.bat",
+        "alias": "plantuml",
+        "options": {
+            "default_format": "png",
+            "output_directory": "out"
+        }
+    }
+} 

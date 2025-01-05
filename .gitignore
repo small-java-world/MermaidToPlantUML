@@ -1,0 +1,50 @@
+# Go言語関連
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# バイナリディレクトリ
+bin/
+lib/
+
+# 依存関係
+vendor/
+
+# テストカバレッジ
+coverage.txt
+coverage.html
+
+# IDE関連
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# プロジェクト固有
+*.mmd
+*.puml
+*.png
+*.svg
+*.pdf
+!examples/*.mmd
+!examples/*.puml
+!examples/*.png
+!examples/*.svg
+!examples/*.pdf
+
+# ログファイル
+*.log
+
+# 一時ファイル
+tmp/
+temp/ 
