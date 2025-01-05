@@ -2,6 +2,56 @@
 
 MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換し、画像として出力するCLIツールです。
 
+## 前提条件
+
+1. Java（JRE 8以上）がインストールされていること
+2. `lib`ディレクトリに`plantuml-1.2024.8.jar`が配置されていること
+
+## 実行方法
+
+### Windows
+
+1. PowerShellを開きます
+
+2. プロジェクトのディレクトリに移動：
+   ```powershell
+   cd D:\path\to\MermaidToPlantUML
+   ```
+
+3. 現在のディレクトリをPATHに追加し、Mermaidファイルを変換：
+   ```powershell
+   # 現在のディレクトリをPATHに一時的に追加
+   $env:Path = "$env:Path;$(Get-Location)"
+   
+   # Mermaidファイルを変換
+   .\mermaid2plantuml.exe .\samples\domain_model.mmd > output.puml
+   ```
+
+変換が成功すると、以下のファイルが生成されます：
+- PlantUMLファイル（output.puml）
+- 画像ファイル（output.png）
+
+注意：PATHの設定は現在のPowerShellセッションでのみ有効です。新しいウィンドウを開くと再度設定が必要です。
+
+### Mac/Linux
+
+1. ターミナルを開きます
+
+2. プロジェクトのディレクトリに移動：
+   ```bash
+   cd /path/to/MermaidToPlantUML
+   ```
+
+3. 実行権限を付与：
+   ```bash
+   chmod +x mermaid2plantuml
+   ```
+
+4. Mermaidファイルを変換：
+   ```bash
+   ./mermaid2plantuml ./samples/domain_model.mmd
+   ```
+
 ## 機能概要
 
 - Mermaid形式のクラス図をPlantUML形式に変換
@@ -226,3 +276,27 @@ MIT License
 3. Commit your changes
 4. Push to the branch
 5. Create a new Pull Request 
+
+## 実行方法
+
+### Windows (PowerShell)
+
+1. PowerShellを開きます。
+
+2. プロジェクトのディレクトリに移動します：
+   ```powershell
+   cd path\to\MermaidToPlantUML
+   ```
+
+3. Mermaidファイルを変換します：
+   ```powershell
+   # Step 1: MermaidファイルをPlantUML形式に変換
+   .\mermaid2plantuml.exe .\samples\domain_model.mmd > output.puml
+   
+   # Step 2: PlantUMLファイルから画像を生成
+   java -jar .\lib\plantuml-1.2024.8.jar output.puml
+   ```
+
+変換が成功すると、以下のファイルが生成されます：
+- PlantUMLファイル（output.puml）
+- 画像ファイル（output.png） 

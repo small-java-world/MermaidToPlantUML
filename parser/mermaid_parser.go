@@ -2,25 +2,23 @@ package parser
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 )
 
 // MermaidParser はMermaid形式のクラス図をPlantUML形式に変換するパーサー
 type MermaidParser struct {
-	debugEnabled bool
-}
-
-type ClassDefinition struct {
-	Members []string
-	IsEnum  bool
+	debugEnabled       bool
+	classParser        *ClassParser
+	relationshipParser *RelationshipParser
 }
 
 // NewMermaidParser は新しいMermaidParserインスタンスを作成します
 func NewMermaidParser() *MermaidParser {
 	return &MermaidParser{
-		debugEnabled: true,
+		debugEnabled:       true,
+		classParser:        NewClassParser(),
+		relationshipParser: NewRelationshipParser(),
 	}
 }
 
@@ -29,19 +27,6 @@ func (p *MermaidParser) debugPrint(format string, args ...interface{}) {
 	if p.debugEnabled {
 		fmt.Printf("[DEBUG] "+format+"\n", args...)
 	}
-}
-
-func (p *MermaidParser) extractClassNames(line string) []string {
-	var classNames []string
-	parts := strings.Fields(line)
-	for _, part := range parts {
-		if !strings.Contains(part, "--") && !strings.Contains(part, "..") &&
-			!strings.Contains(part, "<") && !strings.Contains(part, ">") &&
-			!strings.Contains(part, "*") && !strings.Contains(part, "\"") {
-			classNames = append(classNames, part)
-		}
-	}
-	return classNames
 }
 
 // ParseToPlantUML はMermaid形式の文字列をPlantUML形式に変換します
@@ -60,7 +45,6 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 
 	relationships := []string{}
 	classes := make(map[string]string)
-	undefinedClasses := make(map[string]bool)
 	definedClasses := make(map[string]bool)
 
 	for i := 0; i < len(lines); i++ {
@@ -78,7 +62,7 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 			}
 
 			// クラスの内容を解析
-			endIndex, classDef, err := p.parseClassContent(lines, i)
+			endIndex, classDef, err := p.classParser.ParseClassContent(lines, i)
 			if err != nil {
 				return "", err
 			}
@@ -93,18 +77,11 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 
 			classes[className] = classContent.String()
 			definedClasses[className] = true
-			delete(undefinedClasses, className)
 			i = endIndex
 
 		} else if strings.Contains(line, "--") || strings.Contains(line, "..") {
 			// 関連の処理
 			relationships = append(relationships, line)
-			// 関連に含まれるクラスを未定義クラスとして登録
-			for _, className := range p.extractClassNames(line) {
-				if !definedClasses[className] {
-					undefinedClasses[className] = true
-				}
-			}
 		}
 	}
 
@@ -126,63 +103,4 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 
 	result.WriteString("@enduml")
 	return result.String(), nil
-}
-
-func (p *MermaidParser) parseClassContent(lines []string, startIndex int) (int, *ClassDefinition, error) {
-	classDef := &ClassDefinition{
-		Members: []string{},
-		IsEnum:  false,
-	}
-
-	currentIndex := startIndex
-	memberPattern := regexp.MustCompile(`\s*([+\-#~])?(?:(\w+(?:~\w+~)?)\s+(\w+)|(\w+)(?:\((.*?)\))?)`)
-
-	for currentIndex < len(lines) {
-		line := strings.TrimSpace(lines[currentIndex])
-		if line == "}" {
-			break
-		}
-
-		if line == "<<enumeration>>" {
-			classDef.IsEnum = true
-			classDef.Members = append(classDef.Members, line)
-			currentIndex++
-			continue
-		}
-
-		if classDef.IsEnum {
-			// 列挙型の値は単純に追加
-			if line != "" && line != "<<enumeration>>" {
-				classDef.Members = append(classDef.Members, line)
-			}
-		} else if line == "<<interface>>" || line == "<<abstract>>" {
-			// インターフェースと抽象クラスのステレオタイプを追加
-			classDef.Members = append(classDef.Members, line)
-		} else if matches := memberPattern.FindStringSubmatch(line); matches != nil {
-			// メンバーの処理
-			visibility := matches[1]
-			if visibility == "" {
-				visibility = "+"
-			}
-
-			if matches[2] != "" && matches[3] != "" {
-				// 属性の場合
-				typeName := matches[2]
-				memberName := matches[3]
-				classDef.Members = append(classDef.Members, fmt.Sprintf("%s%s: %s", visibility, memberName, typeName))
-			} else if matches[4] != "" {
-				// メソッドの場合
-				methodName := matches[4]
-				params := matches[5]
-				if params != "" {
-					classDef.Members = append(classDef.Members, fmt.Sprintf("%s%s(%s)", visibility, methodName, params))
-				} else {
-					classDef.Members = append(classDef.Members, fmt.Sprintf("%s%s()", visibility, methodName))
-				}
-			}
-		}
-		currentIndex++
-	}
-
-	return currentIndex, classDef, nil
 }
