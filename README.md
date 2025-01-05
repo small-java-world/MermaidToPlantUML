@@ -9,22 +9,21 @@ MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換�
 
 ## 実行方法
 
-### Windows
+### Windows (PowerShell)
 
-1. PowerShellを開きます
+1. PowerShellを開きます。
 
-2. プロジェクトのディレクトリに移動：
+2. プロジェクトのディレクトリに移動します：
    ```powershell
-   cd D:\path\to\MermaidToPlantUML
+   cd path\to\MermaidToPlantUML
    ```
 
-3. 現在のディレクトリをPATHに追加し、Mermaidファイルを変換：
+3. Mermaidファイルを変換します：
    ```powershell
    # 現在のディレクトリをPATHに一時的に追加
    $env:Path = "$env:Path;$(Get-Location)"
-   
-   # Mermaidファイルを変換
-   .\mermaid2plantuml.exe .\samples\domain_model.mmd > output.puml
+   .\mermaid2plantuml.exe samples/domain_model.mmd
+   # => samples/domain_model.puml が生成されます
    ```
 
 変換が成功すると、以下のファイルが生成されます：
@@ -35,22 +34,31 @@ MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換�
 
 ### Mac/Linux
 
-1. ターミナルを開きます
+1. ターミナルを開きます。
 
-2. プロジェクトのディレクトリに移動：
+2. プロジェクトのディレクトリに移動します：
    ```bash
    cd /path/to/MermaidToPlantUML
    ```
 
-3. 実行権限を付与：
+3. 実行権限を付与します：
    ```bash
    chmod +x mermaid2plantuml
    ```
 
-4. Mermaidファイルを変換：
+4. Mermaidファイルを変換します：
    ```bash
-   ./mermaid2plantuml ./samples/domain_model.mmd
+   # 現在のディレクトリをPATHに一時的に追加
+   export PATH=$PATH:$(pwd)
+   ./mermaid2plantuml samples/domain_model.mmd
+   # => samples/domain_model.puml が生成されます
    ```
+
+注意：PATHの設定は現在のターミナルセッションでのみ有効です。新しいウィンドウを開くと再度設定が必要です。
+
+変換が成功すると、以下のファイルが生成されます：
+- PlantUMLファイル（output.puml）
+- 画像ファイル（output.png）
 
 ## 機能概要
 
@@ -290,11 +298,10 @@ MIT License
 
 3. Mermaidファイルを変換します：
    ```powershell
-   # Step 1: MermaidファイルをPlantUML形式に変換
-   .\mermaid2plantuml.exe .\samples\domain_model.mmd > output.puml
-   
-   # Step 2: PlantUMLファイルから画像を生成
-   java -jar .\lib\plantuml-1.2024.8.jar output.puml
+   # 現在のディレクトリをPATHに一時的に追加
+   $env:Path = "$env:Path;$(Get-Location)"
+   .\mermaid2plantuml.exe samples/domain_model.mmd
+   # => samples/domain_model.puml が生成されます
    ```
 
 変換が成功すると、以下のファイルが生成されます：

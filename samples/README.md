@@ -28,6 +28,7 @@ go build
 Windows環境:
 ```cmd
 # Mermaid形式（.mmd）からPlantUML形式（.puml）に変換
+$env:Path = "$env:Path;$(Get-Location)"
 .\mermaid2plantuml.exe samples/domain_model.mmd
 # => samples/domain_model.puml が生成されます
 ```
