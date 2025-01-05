@@ -27,8 +27,8 @@ MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換�
    ```
 
 変換が成功すると、以下のファイルが生成されます：
-- PlantUMLファイル（output.puml）
-- 画像ファイル（output.png）
+- PlantUMLファイル（samples/domain_model.puml）
+- 画像ファイル（samples/domain_model.png）
 
 注意：PATHの設定は現在のPowerShellセッションでのみ有効です。新しいウィンドウを開くと再度設定が必要です。
 
@@ -57,8 +57,8 @@ MermaidのドメインモデルクラスダイアグラムをPlantUMLに変換�
 注意：PATHの設定は現在のターミナルセッションでのみ有効です。新しいウィンドウを開くと再度設定が必要です。
 
 変換が成功すると、以下のファイルが生成されます：
-- PlantUMLファイル（output.puml）
-- 画像ファイル（output.png）
+- PlantUMLファイル（samples/domain_model.puml）
+- 画像ファイル（samples/domain_model.png）
 
 ## 機能概要
 
@@ -305,5 +305,5 @@ MIT License
    ```
 
 変換が成功すると、以下のファイルが生成されます：
-- PlantUMLファイル（output.puml）
-- 画像ファイル（output.png） 
+- PlantUMLファイル（samples/domain_model.puml）
+- 画像ファイル（samples/domain_model.png） 
