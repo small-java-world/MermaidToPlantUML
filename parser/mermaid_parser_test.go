@@ -18,7 +18,7 @@ func TestMermaidParser_ParseToPlantUML(t *testing.T) {
     class Order {
         +String orderId
         +Date orderDate
-        +void placeOrder()
+        +placeOrder()
     }`,
 			expected: `@startuml
 class Order {
@@ -57,7 +57,7 @@ class Order {
     Animal <|-- Cat
     class Animal {
         +String name
-        +void makeSound()
+        +makeSound()
     }`,
 			expected: `@startuml
 Animal <|-- Dog
@@ -65,6 +65,52 @@ Animal <|-- Cat
 class Animal {
     +name: String
     +makeSound()
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "enumeration定義",
+			input: `classDiagram
+    class Status {
+        <<enumeration>>
+        ACTIVE
+        INACTIVE
+        SUSPENDED
+    }`,
+			expected: `@startuml
+class Status {
+    <<enumeration>>
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "enumeration関連",
+			input: `classDiagram
+    class Order {
+        +String id
+        +Status status
+    }
+    class Status {
+        <<enumeration>>
+        PENDING
+        COMPLETED
+    }
+    Order .. Status`,
+			expected: `@startuml
+Order .. Status
+class Order {
+    +id: String
+    +status: Status
+}
+class Status {
+    <<enumeration>>
+    PENDING
+    COMPLETED
 }
 @enduml`,
 			wantErr: false,
@@ -83,6 +129,144 @@ class Animal {
         invalid syntax here
     }`,
 			wantErr: true,
+		},
+		{
+			name: "複数のenumeration",
+			input: `classDiagram
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        PROCESSING
+        COMPLETED
+    }
+    class PaymentStatus {
+        <<enumeration>>
+        UNPAID
+        PAID
+        REFUNDED
+    }
+    Order .. OrderStatus
+    Order .. PaymentStatus`,
+			expected: `@startuml
+Order .. OrderStatus
+Order .. PaymentStatus
+class OrderStatus {
+    <<enumeration>>
+    PENDING
+    PROCESSING
+    COMPLETED
+}
+class PaymentStatus {
+    <<enumeration>>
+    UNPAID
+    PAID
+    REFUNDED
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "インターフェース定義",
+			input: `classDiagram
+    class IPaymentProcessor {
+        <<interface>>
+        +process()
+        +refund()
+    }
+    class StripeProcessor {
+        -String apiKey
+        +process()
+        +refund()
+    }
+    IPaymentProcessor <|.. StripeProcessor`,
+			expected: `@startuml
+IPaymentProcessor <|.. StripeProcessor
+class IPaymentProcessor {
+    <<interface>>
+    +process()
+    +refund()
+}
+class StripeProcessor {
+    -apiKey: String
+    +process()
+    +refund()
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "複雑な関連",
+			input: `classDiagram
+    class Order {
+        +String id
+        +Customer customer
+        +List~Product~ products
+    }
+    class Customer {
+        +String name
+        +Address address
+    }
+    class Product {
+        +String sku
+        +Double price
+    }
+    class Address {
+        +String street
+        +String city
+    }
+    Order "1" *-- "1" Customer
+    Order "1" o-- "many" Product
+    Customer "1" -- "1" Address`,
+			expected: `@startuml
+Order "1" *-- "1" Customer
+Order "1" o-- "many" Product
+Customer "1" -- "1" Address
+class Address {
+    +street: String
+    +city: String
+}
+class Customer {
+    +name: String
+    +address: Address
+}
+class Order {
+    +id: String
+    +customer: Customer
+    +products: List~Product~
+}
+class Product {
+    +sku: String
+    +price: Double
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "可視性修飾子のバリエーション",
+			input: `classDiagram
+    class Example {
+        +String publicField
+        -String privateField
+        #String protectedField
+        ~String packageField
+        +publicMethod()
+        -privateMethod()
+        #protectedMethod()
+        ~packageMethod()
+    }`,
+			expected: `@startuml
+class Example {
+    +publicField: String
+    -privateField: String
+    #protectedField: String
+    ~packageField: String
+    +publicMethod()
+    -privateMethod()
+    #protectedMethod()
+    ~packageMethod()
+}
+@enduml`,
+			wantErr: false,
 		},
 	}
 

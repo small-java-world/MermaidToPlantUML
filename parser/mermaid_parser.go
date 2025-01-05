@@ -14,6 +14,8 @@ type MermaidParser struct {
 	relations        []string
 	currentClass     string
 	undefinedClasses map[string]bool
+	isEnum           bool // enumeration処理中かどうか
+	isInterface      bool // interface処理中かどうか
 	debug            bool // デバッグモード
 }
 
@@ -23,6 +25,8 @@ func NewMermaidParser() *MermaidParser {
 		classes:          make(map[string]string),
 		relations:        make([]string, 0),
 		undefinedClasses: make(map[string]bool),
+		isEnum:           false,
+		isInterface:      false,
 		debug:            true, // デバッグを有効化
 	}
 }
@@ -54,7 +58,10 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 	// 正規表現パターン
 	classPattern := regexp.MustCompile(`class\s+(\w+)`)
 	relationPattern := regexp.MustCompile(`(\w+)\s*([<\-\|>*]+)\s*(\w+)`)
-	memberPattern := regexp.MustCompile(`\s*([+\-#~])?(\w+)\s+(\w+)(?:\s*\((.*?)\))?`)
+	memberPattern := regexp.MustCompile(`\s*([+\-#~])?(?:(\w+(?:~\w+~)?)\s+(\w+)|(\w+)\(\))`)
+	enumPattern := regexp.MustCompile(`\s*<<enumeration>>`)
+	interfacePattern := regexp.MustCompile(`\s*<<interface>>`)
+	multiplicityPattern := regexp.MustCompile(`(\w+)\s*"([^"]+)"\s*([<\-\|>*o]+)\s*"([^"]+)"\s*(\w+)`)
 
 	// 最初にすべての行を読み込んで分類
 	var lines []string
@@ -102,6 +109,33 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 				p.undefinedClasses[class2] = true
 				p.debugPrint("未定義クラスを登録: %s", class2)
 			}
+		} else if matches := multiplicityPattern.FindStringSubmatch(line); matches != nil {
+			// 多重度を含む関連の検出
+			p.debugPrint("多重度を含む関連を検出: %v", matches)
+			class1, mult1, rel, mult2, class2 := matches[1], matches[2], matches[3], matches[4], matches[5]
+			relation := fmt.Sprintf("%s \"%s\" %s \"%s\" %s", class1, mult1, rel, mult2, class2)
+			p.relations = append(p.relations, relation)
+
+			// 関連に含まれるクラスを登録（未定義の場合）
+			if _, exists := p.classes[class1]; !exists {
+				p.classes[class1] = fmt.Sprintf("class %s\n", class1)
+				p.undefinedClasses[class1] = true
+				p.debugPrint("未定義クラスを登録: %s", class1)
+			}
+			if _, exists := p.classes[class2]; !exists {
+				p.classes[class2] = fmt.Sprintf("class %s\n", class2)
+				p.undefinedClasses[class2] = true
+				p.debugPrint("未定義クラスを登録: %s", class2)
+			}
+		} else if strings.Contains(line, "..") {
+			// ドット関連の検出
+			parts := strings.Split(line, "..")
+			if len(parts) == 2 {
+				class1 := strings.TrimSpace(parts[0])
+				class2 := strings.TrimSpace(parts[1])
+				p.debugPrint("ドット関連を検出: %s .. %s", class1, class2)
+				p.relations = append(p.relations, line)
+			}
 		}
 	}
 
@@ -132,6 +166,8 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 		// クラス定義の終了
 		if line == "}" && inClass {
 			inClass = false
+			p.isEnum = false      // enumフラグをリセット
+			p.isInterface = false // interfaceフラグをリセット
 			classBuilder.WriteString("}\n")
 			p.classes[p.currentClass] = classBuilder.String()
 			p.debugPrint("クラス定義の終了: %s", p.currentClass)
@@ -140,26 +176,44 @@ func (p *MermaidParser) ParseToPlantUML(input string) (string, error) {
 
 		// クラスメンバーの処理
 		if inClass {
+			if enumPattern.MatchString(line) {
+				// enumeration の場合
+				classBuilder.WriteString("    <<enumeration>>\n")
+				p.isEnum = true
+				continue
+			}
+
+			if interfacePattern.MatchString(line) {
+				// interface の場合
+				classBuilder.WriteString("    <<interface>>\n")
+				p.isInterface = true
+				continue
+			}
+
 			if matches := memberPattern.FindStringSubmatch(line); matches != nil {
 				visibility := matches[1]
 				if visibility == "" {
 					visibility = "+"
 				}
-				typeName := matches[2]
-				memberName := matches[3]
-				p.debugPrint("メンバーを検出: visibility=%s, type=%s, name=%s", visibility, typeName, memberName)
 
-				if strings.ToLower(typeName) == "void" {
-					// voidメソッドの場合
-					classBuilder.WriteString(fmt.Sprintf("    %s%s()\n", visibility, memberName))
-				} else if strings.Contains(line, "(") {
-					// その他のメソッドの場合
-					classBuilder.WriteString(fmt.Sprintf("    %s%s()\n", visibility, memberName))
-				} else {
+				if matches[2] != "" && matches[3] != "" {
 					// 属性の場合
+					typeName := matches[2]
+					memberName := matches[3]
+					p.debugPrint("属性を検出: visibility=%s, type=%s, name=%s", visibility, typeName, memberName)
 					classBuilder.WriteString(fmt.Sprintf("    %s%s: %s\n", visibility, memberName, typeName))
+				} else if matches[4] != "" {
+					// メソッドの場合
+					methodName := matches[4]
+					p.debugPrint("メソッドを検出: visibility=%s, name=%s", visibility, methodName)
+					classBuilder.WriteString(fmt.Sprintf("    %s%s()\n", visibility, methodName))
 				}
 			} else if !strings.HasPrefix(line, "class") && line != "{" && line != "}" {
+				// enumの値の場合
+				if p.isEnum {
+					classBuilder.WriteString("    " + line + "\n")
+					continue
+				}
 				// 不正な構文
 				p.debugPrint("不正な構文を検出: %s", line)
 				return "", fmt.Errorf("不正なクラスメンバー定義: %s", line)
