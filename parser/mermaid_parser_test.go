@@ -268,6 +268,161 @@ class Example {
 @enduml`,
 			wantErr: false,
 		},
+		{
+			name: "抽象クラス",
+			input: `classDiagram
+    class Shape {
+        <<abstract>>
+        +Double area
+        +calculate()
+    }
+    class Circle {
+        +Double radius
+        +calculate()
+    }
+    class Rectangle {
+        +Double width
+        +Double height
+        +calculate()
+    }
+    Shape <|-- Circle
+    Shape <|-- Rectangle`,
+			expected: `@startuml
+Shape <|-- Circle
+Shape <|-- Rectangle
+class Circle {
+    +radius: Double
+    +calculate()
+}
+class Rectangle {
+    +width: Double
+    +height: Double
+    +calculate()
+}
+class Shape {
+    <<abstract>>
+    +area: Double
+    +calculate()
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "パラメータ付きメソッド",
+			input: `classDiagram
+    class Calculator {
+        +add(Double a, Double b)
+        +subtract(Double x, Double y)
+        +multiply(Double p, Double q)
+        +divide(Double m, Double n)
+    }`,
+			expected: `@startuml
+class Calculator {
+    +add(Double a, Double b)
+    +subtract(Double x, Double y)
+    +multiply(Double p, Double q)
+    +divide(Double m, Double n)
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "複数の継承関係",
+			input: `classDiagram
+    class Vehicle {
+        +String model
+        +start()
+        +stop()
+    }
+    class Engine {
+        +Integer power
+        +start()
+        +stop()
+    }
+    class ElectricCar {
+        +Integer batteryLevel
+        +charge()
+    }
+    Vehicle <|-- ElectricCar
+    Engine <|-- ElectricCar`,
+			expected: `@startuml
+Vehicle <|-- ElectricCar
+Engine <|-- ElectricCar
+class ElectricCar {
+    +batteryLevel: Integer
+    +charge()
+}
+class Engine {
+    +power: Integer
+    +start()
+    +stop()
+}
+class Vehicle {
+    +model: String
+    +start()
+    +stop()
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "双方向の関連",
+			input: `classDiagram
+    class Student {
+        +String name
+        +List~Course~ courses
+    }
+    class Course {
+        +String code
+        +List~Student~ students
+    }
+    Student "many" <--> "many" Course`,
+			expected: `@startuml
+Student "many" <--> "many" Course
+class Course {
+    +code: String
+    +students: List~Student~
+}
+class Student {
+    +name: String
+    +courses: List~Course~
+}
+@enduml`,
+			wantErr: false,
+		},
+		{
+			name: "関連クラス",
+			input: `classDiagram
+    class Order {
+        +String orderId
+    }
+    class Product {
+        +String sku
+    }
+    class OrderItem {
+        +Integer quantity
+        +Double price
+    }
+    Order "1" -- "many" Product
+    OrderItem .. Order
+    OrderItem .. Product`,
+			expected: `@startuml
+Order "1" -- "many" Product
+OrderItem .. Order
+OrderItem .. Product
+class Order {
+    +orderId: String
+}
+class OrderItem {
+    +quantity: Integer
+    +price: Double
+}
+class Product {
+    +sku: String
+}
+@enduml`,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
